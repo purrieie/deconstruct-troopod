@@ -271,6 +271,7 @@ html,body{overflow-x:clip}
 body.intro .pin::after{animation:ring 1.6s ease-out 2}
 @keyframes ring{0%{opacity:.7;transform:scale(.7)}100%{opacity:0;transform:scale(1.5)}}
 body.nopins .pin{display:none}
+body.top5only .pin:not(.top){display:none}
 body.nopins [data-c].lit{outline:0}
 [data-c].lit{outline:2px dashed var(--pin);outline-offset:6px}
 .tp-bar{position:fixed;z-index:60;left:12px;bottom:calc(80px + env(safe-area-inset-bottom,0px));display:flex;align-items:stretch;background:var(--pin);border-radius:30px;box-shadow:0 4px 18px rgba(91,61,245,.35);padding:3px}
@@ -284,8 +285,19 @@ body.nopins .tp-bar .sw::after{left:2px}
 .hpin{border:0;background:var(--pin);color:#fff;font-size:12px;font-weight:700;border-radius:50%;width:32px;height:32px;padding:0;display:grid;place-items:center;box-shadow:0 2px 8px rgba(91,61,245,.35)}
 .hrow .r{gap:6px}
 @media (min-width:900px){.hpin{display:none}.hrow .r{gap:18px}}
+.seg{display:flex;background:rgba(255,255,255,.18);border-radius:30px;padding:2px}
+.tp-bar .seg button{padding:6px 12px;min-height:34px;color:#fff;opacity:.85}
+.tp-bar .seg button[aria-pressed="true"]{background:#fff;color:var(--pin);opacity:1}
+.tp-bar .seg button[data-mode="top"][aria-pressed="true"]{background:linear-gradient(135deg,#f6d77f,#c9952b);color:#2b1f05}
+.mseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 14px}
+.mseg button{height:42px;border:1.5px solid var(--pin);background:#fff;color:var(--pin);font-weight:600;font-size:13px}
+.mseg button[aria-pressed="true"]{background:var(--pin);color:#fff}
+.mseg button[data-mode="top"]{border-color:#c9952b;color:#8a6414}
+.mseg button[data-mode="top"][aria-pressed="true"]{background:linear-gradient(135deg,#f6d77f,#c9952b);color:#2b1f05}
+body.top5only .hpin{background:linear-gradient(135deg,#f6d77f,#c9952b);color:#2b1f05}
+body.nopins .hpin{opacity:.5}
 .alltog{width:100%;margin:0 0 12px;height:42px;border:1.5px solid var(--pin);background:#fff;color:var(--pin);font-weight:600;font-size:13.5px}
-body.nopins .tp-bar #tpl{display:none}
+
 .scrim{position:fixed;inset:0;background:rgba(26,27,24,.35);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s}
 .scrim.on{opacity:1;pointer-events:auto}
 .drawer{position:fixed;z-index:80;background:#fff;display:flex;flex-direction:column;transition:transform .28s ease;left:0;right:0;bottom:0;max-height:82vh;border-radius:14px 14px 0 0;transform:translateY(105%);padding-bottom:env(safe-area-inset-bottom,0px);font-family:"DM Sans",sans-serif}
@@ -651,7 +663,7 @@ body.nopins .tp-bar #tpl{display:none}
 </div>
 
 <!-- annotation controls -->
-<div class="tp-bar"><button id="tpt" aria-pressed="true"><span class="sw" aria-hidden="true"></span>Troopod pins</button><button id="tpl" aria-label="See all 15 Troopod changes"><span class="n">15</span><span class="full">15 changes</span></button></div>
+<div class="tp-bar"><div class="seg" role="group" aria-label="Pins to show"><button data-mode="all" aria-pressed="true">All 15</button><button data-mode="top" aria-pressed="false">Top 5</button><button data-mode="off" aria-pressed="false">Off</button></div><button id="tpl" aria-label="Open the list of changes"><span class="full">List</span></button></div>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Change details">
   <div class="dh"><span class="k" id="dk">Change 1 of 15</span><button class="ico" id="dx" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l14 14M19 5 5 19"/></svg></button></div>
@@ -689,22 +701,28 @@ setTimeout(()=>document.body.classList.remove('intro'),3600);
 const drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim'),db=document.getElementById('db'),df=document.getElementById('df'),dk=document.getElementById('dk');
 let cur=1;
 function lit(n){document.querySelectorAll('[data-c].lit').forEach(x=>x.classList.remove('lit'));const el=document.querySelector('[data-c="'+n+'"]');if(el){el.classList.add('lit');el.classList.toggle('gold',TOP.includes(n));el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'})}}
-function openCh(n){cur=n;const c=CH[n-1];dk.innerHTML=(TOP.includes(n)?'<span class="dk-top">TOP 5</span>':'')+'Change '+n+' of '+CH.length;
+function openCh(n){cur=n;const c=CH[n-1];const o=order(),pos=o.indexOf(n);dk.innerHTML=(TOP.includes(n)?'<span class="dk-top">TOP 5</span>':'')+(mode==='top'&&pos>-1?'Top change '+(pos+1)+' of 5':'Change '+n+' of '+CH.length);
  db.innerHTML='<h3>'+c.t+'</h3><div class="area">'+c.a+'</div><div class="q"><small>WHAT SHE IS THINKING</small>'+c.q+'</div><div class="row"><small>WHAT WE CHANGED</small><p>'+c.d+'</p></div><div class="row"><small>ON THE LIVE PAGE TODAY</small><p>'+c.l+'</p></div>';
- df.hidden=false;document.getElementById('dprev').disabled=n===1;document.getElementById('dnext').textContent=n===CH.length?'See all changes':'Next change';
+ df.hidden=false;document.getElementById('dprev').disabled=pos<=0;document.getElementById('dnext').textContent=pos===o.length-1||pos<0?'See all changes':'Next change';
  show();lit(n)}
 const li=(n,g)=>'<li><button data-n="'+n+'"><i class="'+(g?'g':'')+'">'+n+'</i><span><b>'+CH[n-1].t+'</b><span>'+CH[n-1].a+'</span></span></button></li>';
-function openAll(){dk.textContent='All '+CH.length+' changes';
- db.innerHTML='<button class="alltog" id="alltog">'+(document.body.classList.contains('nopins')?'Show pins on the page':'Hide pins, view the clean page')+'</button><ul class="alli"><li class="hd"><h5>TOP 5, SHIP THESE FIRST</h5></li>'+TOP.map(n=>li(n,true)).join('')+'<li class="hd"><h5>EVERYTHING ELSE</h5></li>'+CH.map((c,i)=>i+1).filter(n=>!TOP.includes(n)).map(n=>li(n,false)).join('')+'</ul>';
- df.hidden=true;document.getElementById('alltog').onclick=()=>{const off=document.body.classList.toggle('nopins');tpt.setAttribute('aria-pressed',String(!off));hide()};db.querySelectorAll('button[data-n]').forEach(b=>b.addEventListener('click',()=>openCh(+b.dataset.n)));show()}
+function openAll(){dk.textContent=mode==='top'?'Top 5 changes':'All '+CH.length+' changes';
+ db.innerHTML='<div class="mseg" role="group" aria-label="Pins to show"><button data-mode="all" aria-pressed="'+(mode==='all')+'">All 15</button><button data-mode="top" aria-pressed="'+(mode==='top')+'">Top 5 only</button><button data-mode="off" aria-pressed="'+(mode==='off')+'">Hide pins</button></div><ul class="alli"><li class="hd"><h5>TOP 5, SHIP THESE FIRST</h5></li>'+TOP.map(n=>li(n,true)).join('')+(mode==='top'?'':'<li class="hd"><h5>EVERYTHING ELSE</h5></li>'+CH.map((c,i)=>i+1).filter(n=>!TOP.includes(n)).map(n=>li(n,false)).join(''))+'</ul>';
+ df.hidden=true;db.querySelectorAll('.mseg [data-mode]').forEach(b=>b.onclick=()=>{setMode(b.dataset.mode);if(b.dataset.mode!=='off')openAll()});db.querySelectorAll('button[data-n]').forEach(b=>b.addEventListener('click',()=>openCh(+b.dataset.n)));show()}
 function show(){drawer.classList.add('on');scrim.classList.add('on');drawer.setAttribute('aria-hidden','false');db.scrollTop=0;document.getElementById('dx').focus({preventScroll:true})}
 function hide(){drawer.classList.remove('on');scrim.classList.remove('on');drawer.setAttribute('aria-hidden','true');document.querySelectorAll('[data-c].lit').forEach(x=>x.classList.remove('lit'))}
 document.getElementById('dx').onclick=hide;scrim.onclick=hide;
-document.getElementById('dprev').onclick=()=>cur>1&&openCh(cur-1);
-document.getElementById('dnext').onclick=()=>cur<CH.length?openCh(cur+1):openAll();
+document.getElementById('dprev').onclick=()=>{const o=order(),p=o.indexOf(cur);if(p>0)openCh(o[p-1])};
+document.getElementById('dnext').onclick=()=>{const o=order(),p=o.indexOf(cur);(p>-1&&p<o.length-1)?openCh(o[p+1]):openAll()};
 document.getElementById('tpl').onclick=openAll;document.getElementById('hpin').onclick=openAll;
 drawer.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
-const tpt=document.getElementById('tpt');tpt.onclick=()=>{const off=document.body.classList.toggle('nopins');tpt.setAttribute('aria-pressed',String(!off));if(off)hide()};
+let mode='all';
+function setMode(m){mode=m;document.body.classList.toggle('nopins',m==='off');document.body.classList.toggle('top5only',m==='top');
+ document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===m)));
+ const h=document.getElementById('hpin');h.textContent=m==='top'?'5':'15';
+ if(m==='off')hide()}
+document.querySelectorAll('.tp-bar [data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+const order=()=>mode==='top'?TOP.slice():CH.map((c,i)=>i+1);
 
 /* gallery */
 const track=document.getElementById('track'),th=[...document.querySelectorAll('#thumbs button')],caps=['Product','Texture','Results','Oily skin','Proof','Derms','Formula'];let gi=0;
